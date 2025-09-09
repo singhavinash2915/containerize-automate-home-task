@@ -92,3 +92,73 @@ jobs:
         echo "   Package URL: https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }}"
         echo "   Commit URL: ${{ github.event.head_commit.url }}"
         echo "   Workflow URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                      # Save build cache for future runs
+
+    # Step 6: Generate workflow summary and display comprehensive image details
+    - name: Generate workflow summary
+      run: |
+        # Create GitHub Actions Summary (visible in workflow summary tab)
+        cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+        # 🎉 Docker Image Build & Push Completed!
+        
+        ## 📦 Image Details
+        | Property | Value |
+        |----------|-------|
+        | **Registry** | `${{ env.REGISTRY }}` |
+        | **Repository** | `${{ env.IMAGE_NAME }}` |
+        | **Full Image** | `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}` |
+        | **Tags** | `${{ steps.meta.outputs.tags }}` |
+        | **Digest** | `${{ steps.meta.outputs.digest }}` |
+        
+        ## 🔍 Build Information
+        | Property | Value |
+        |----------|-------|
+        | **Triggered by** | `${{ github.actor }}` |
+        | **Branch** | `${{ github.ref_name }}` |
+        | **Commit SHA** | `${{ github.sha }}` |
+        | **Commit Message** | `${{ github.event.head_commit.message }}` |
+        | **Build Time** | `$(date -u '+%Y-%m-%d %H:%M:%S UTC')` |
+        
+        ## 🚀 Deployment Commands
+        
+        **Pull the image:**
+        ```bash
+        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ github.sha }}
+        ```
+        
+        **Run the container:**
+        ```bash
+        docker run -p 3000:3000 -d --name my-app ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ github.sha }}
+        ```
+        
+        **Stop and remove container:**
+        ```bash
+        docker stop my-app && docker rm my-app
+        ```
+        
+        ## 🔗 Quick Links
+        - [📦 View Package](https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }})
+        - [📝 View Commit](${{ github.event.head_commit.url }})
+        - [⚡ View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+        EOF
+        
+        # Also output to console for immediate visibility in step logs
+        echo "🎉 Docker Image Build & Push Completed Successfully!"
+        echo ""
+        echo "📦 IMAGE DETAILS:"
+        echo "   Registry: ${{ env.REGISTRY }}"
+        echo "   Repository: ${{ env.IMAGE_NAME }}"
+        echo "   Full Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+        echo "   Tags: ${{ steps.meta.outputs.tags }}"
+        echo "   Digest: ${{ steps.meta.outputs.digest }}"
+        echo ""
+        echo "🔍 BUILD INFORMATION:"
+        echo "   Triggered by: ${{ github.actor }}"
+        echo "   Branch: ${{ github.ref_name }}"
+        echo "   Commit SHA: ${{ github.sha }}"
+        echo "   Commit Message: ${{ github.event.head_commit.message }}"
+        echo "   Build Time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+        echo ""
+        echo "🚀 QUICK DEPLOY COMMANDS:"
+        echo "   docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ github.sha }}"
+        echo "   docker run -p 3000:3000 -d --name my-app ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ github.sha }}"
