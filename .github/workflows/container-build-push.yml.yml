@@ -1,0 +1,66 @@
+name: Build and Push Docker Image
+
+
+# This workflow runs on every push to the main branch
+on:
+  push:
+    branches: [ main ]
+
+# Environment Variables
+env:
+  REGISTRY: ghcr.io                        # GitHub Container Registry URL
+  IMAGE_NAME: ${{ github.repository }}     # Uses repository name as image name (format: owner/repo)
+
+jobs:
+  build-and-push:
+    # Run the job on the latest Ubuntu runner
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    # Step 1: Download the repository source code to the runner
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Step 2: Set up Docker Buildx for advanced build features
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # Step 3: Authenticate with GitHub Container Registry
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}           
+        username: ${{ github.actor }}           
+        password: ${{ secrets.GITHUB_TOKEN }}   
+
+    # Step 4: Generate Docker image tags and labels
+    # This creates a tag based on the commit SHA with branch prefix (e.g., main-abc1234)
+    - name: Extract metadata (tags, labels)
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=sha,prefix={{branch}}-            # Creates tag like "main-abc1234567"
+
+    # Step 5: Build the Docker image and push it to the registry
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .                                    # Use current directory as build context (where Dockerfile is located)
+        push: true                                    
+        tags: ${{ steps.meta.outputs.tags }}        
+        labels: ${{ steps.meta.outputs.labels }}    
+        cache-from: type=gha                          
+        cache-to: type=gha,mode=max                   
+
+    # Step 6: Display information about the built and pushed image
+    - name: Output image details
+      run: |
+        echo "🎉 Image pushed successfully!"
+        echo "📦 Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+        echo "🏷️  Tags: ${{ steps.meta.outputs.tags }}"
+        echo "🔍 Digest: ${{ steps.meta.outputs.digest }}"
